@@ -1,3 +1,4 @@
+#define inPinThermo 0
 #define data 2
 #define clock 3
 #define second_digit 4
@@ -16,7 +17,7 @@ byte eight = B00000001;
 byte nine  = B00001001;
 byte point = B11111110;
 
-int i;
+int counter;
 
 byte toByte(int digit) {
   switch (digit) {
@@ -54,10 +55,10 @@ byte toByte(int digit) {
 }
 
 void printSevenSeg(int number) {
-  int puluhan = number/10;
+  int puluhan = (number/10)%10;
   int satuan = number%10;
   
-  for(int iter=0; iter<50; iter++) {
+  for(int i=0;i<50;i++) {
     digitalWrite(first_digit, HIGH);
     digitalWrite(second_digit, LOW);
     shiftOut(data, clock, LSBFIRST, toByte(puluhan));
@@ -75,12 +76,14 @@ void setup()
   pinMode(data , OUTPUT);
   pinMode(second_digit, OUTPUT);
   pinMode(first_digit, OUTPUT);
-  i = 0;
+  counter = 0;
 }
 
 void loop()
 {
-//  printSevenSeg(i);
-//  i++;
+  int value = analogRead(inPinThermo);
+  float millivolts = (value / 1024.0) * 5000;
+  int celcius = millivolts / 10;
+  printSevenSeg(celcius);
 }
 
