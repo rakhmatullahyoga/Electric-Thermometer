@@ -1,8 +1,12 @@
+#include <SoftwareSerial.h>
+
 #define inPinThermo 0
 #define data 2
 #define clock 3
 #define second_digit 4
 #define first_digit 5
+
+SoftwareSerial mySerial(10, 11); // RX, TX
 
 // use binary notation to discribe our number layouts
 byte zero  = B00010001;
@@ -18,6 +22,7 @@ byte nine  = B00001001;
 byte point = B11111110;
 
 int counter;
+bool overheat;
 
 byte toByte(int digit) {
   switch (digit) {
@@ -76,14 +81,24 @@ void setup()
   pinMode(data , OUTPUT);
   pinMode(second_digit, OUTPUT);
   pinMode(first_digit, OUTPUT);
+  Serial.begin(9600);
+  while(!Serial);
+  Serial.println("Goodnight moon!");
+//  mySerial.begin(4800);
+//  mySerial.println("Hello, world?");
   counter = 0;
 }
 
 void loop()
 {
+//  if (mySerial.available())
+//    Serial.write(mySerial.read());
+//  if (Serial.available())
+//    mySerial.write(Serial.read());
   int value = analogRead(inPinThermo);
   float millivolts = (value / 1024.0) * 5000;
   int celcius = millivolts / 10;
   printSevenSeg(celcius);
+  Serial.println("Suhu saat ini: " + celcius); // ini salah, format keluarannya jadi ngaco
 }
 
