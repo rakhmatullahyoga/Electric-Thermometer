@@ -25,6 +25,7 @@ int temperatureMode;
 unsigned long previousMillis;
 const long interval = 1000;
 float celcius;
+int incomingByte = 0;
 
 byte toByte(int digit) {
   switch (digit) {
@@ -163,6 +164,17 @@ void loop() {
       celcius = millivolts * 3.3;
     }
     printSevenSeg(convertSuhu(celcius,temperatureMode));
+    
+    // read input from keyboard
+    if (Serial.available() > 0) {
+      // read the incoming byte:
+      incomingByte = Serial.read();
+ 
+      // say what you got:
+      Serial.print("I received: ");
+      Serial.println(incomingByte, DEC);
+    }
+    
     if(celcius>23.0) {
       digitalWrite(ledPin, HIGH);
     }
@@ -179,6 +191,17 @@ void loop() {
       celcius = millivolts * 3.3;
     }
     printSevenSeg(convertSuhu(celcius,temperatureMode));
+    
+    // read input from keyboard
+    if (Serial.available() > 0) {
+      // read the incoming byte:
+      incomingByte = Serial.read();
+ 
+      // say what you got:
+      Serial.print("I received: ");
+      Serial.println(incomingByte, DEC);
+    }
+    
     if(celcius>23.0) {
       digitalWrite(ledPin, HIGH);
     }
