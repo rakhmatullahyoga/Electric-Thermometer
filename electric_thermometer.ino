@@ -139,8 +139,9 @@ float convertSuhu(float suhu, int mode) {
 }
 
 void changeTemperatureMode() {
-  Serial.println(temperatureMode);
-  while(digitalRead(buttonPin1) == LOW);
+  while(digitalRead(buttonPin1) == LOW) {
+    printSevenSeg(convertSuhu(celcius,temperatureMode));
+  }
   temperatureMode++;
   temperatureMode = temperatureMode%4;
 }
@@ -168,7 +169,7 @@ void setup()
   pinMode(buttonPin2, INPUT);
   Serial.begin(9600);
   while(!Serial);
-  Serial.println("Hello world!");
+  Serial.println("Mini Blangwir system start!");
   temperatureMode = 0;
   previousMillis = 0;
   celcius = 0;
