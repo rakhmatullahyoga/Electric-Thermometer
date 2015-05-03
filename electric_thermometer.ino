@@ -170,12 +170,12 @@ void setup()
   while(!Serial);
   Serial.println("Hello world!");
   temperatureMode = 0;
-  delay(1000);
   previousMillis = 0;
   celcius = 0;
   fadeValue = 0;
   overheatPoint = 27;
   inputMode = false;
+  delay(1000);
 }
 
 void loop() {
