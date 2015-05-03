@@ -1,11 +1,13 @@
 #define inPinThermo A0
-#define buttonPin 1
-#define data 2
-#define clock 3
-#define firstDigitPin 6
+#define buttonPin1 2
+#define buttonPin2 3
+#define firstDigitPin 4
 #define secondDigitPin 5
-#define thirdDigitPin 4
-#define ledPin 7
+#define thirdDigitPin 6
+#define data 7
+#define clock 8
+#define ledPin 9
+#define motorPin 10
 
 // use binary notation to discribe our number layouts
 byte zero  = B00010001;
@@ -20,12 +22,16 @@ byte eight = B00000001;
 byte nine  = B00001001;
 byte point = B11111110;
 
-bool overheat;
 int temperatureMode;
 unsigned long previousMillis;
-const long interval = 1000;
+const long interval = 500;
 float celcius;
+int increment;
 int incomingByte = 0;
+int fadeValue;
+int prevMillisLED;
+bool inputMode;
+float overheatPoint;
 
 byte toByte(int digit) {
   switch (digit) {
@@ -96,17 +102,17 @@ void printSevenSeg(float number) {
     digitalWrite(secondDigitPin, LOW);
     digitalWrite(thirdDigitPin, LOW);
     shiftOut(data, clock, LSBFIRST, toByte(first_digit));
-    delay(7);
+    delay(5);
     digitalWrite(firstDigitPin, LOW);
     digitalWrite(secondDigitPin, HIGH);
     digitalWrite(thirdDigitPin, LOW);
     shiftOut(data, clock, LSBFIRST, toByte(second_digit));
-    delay(7);
+    delay(5);
     digitalWrite(firstDigitPin, LOW);
     digitalWrite(secondDigitPin, LOW);
     digitalWrite(thirdDigitPin, HIGH);
     shiftOut(data, clock, LSBFIRST, toByte(third_digit));
-    delay(7);
+    delay(5);
   }
 }
 
@@ -132,83 +138,94 @@ float convertSuhu(float suhu, int mode) {
   return conversion;
 }
 
+void changeTemperatureMode() {
+  Serial.println(temperatureMode);
+  while(digitalRead(buttonPin1) == LOW);
+  temperatureMode++;
+  temperatureMode = temperatureMode%4;
+}
+
+void inputOverheat() {
+  while(digitalRead(buttonPin2) == LOW) {
+    printSevenSeg(convertSuhu(celcius,temperatureMode));
+  }
+  Serial.println("Masukkan overheat point baru!");
+  inputMode = !inputMode;
+}
+
 void setup()
 {
+  attachInterrupt(0, changeTemperatureMode, LOW);
+  attachInterrupt(1, inputOverheat, LOW);
+  pinMode(motorPin, OUTPUT);
   pinMode(clock, OUTPUT);
   pinMode(data , OUTPUT);
   pinMode(firstDigitPin, OUTPUT);
   pinMode(secondDigitPin, OUTPUT);
   pinMode(thirdDigitPin, OUTPUT);
   pinMode(ledPin, OUTPUT);
-  pinMode(buttonPin, INPUT);
+  pinMode(buttonPin1, INPUT);
+  pinMode(buttonPin2, INPUT);
   Serial.begin(9600);
   while(!Serial);
   Serial.println("Hello world!");
   temperatureMode = 0;
   delay(1000);
   previousMillis = 0;
-  int value = analogRead(inPinThermo);
-  float millivolts = (value / 1024.0) * 100;
-  celcius = millivolts * 3.3;
+  celcius = 0;
+  fadeValue = 0;
+  overheatPoint = 27;
+  inputMode = false;
 }
 
 void loop() {
   unsigned long currentMillis;
-  temperatureMode = temperatureMode%4;
-  while(digitalRead(buttonPin) == HIGH) {
+  
+  if(inputMode) {
+    while(Serial.available() <= 0) {
+      printSevenSeg(convertSuhu(celcius,temperatureMode));
+    }
+    if (Serial.available() > 0) {
+      // read the incoming byte:
+      float input = Serial.parseFloat();
+ 
+      // say what you got:
+      overheatPoint = input;
+      Serial.print("Batas overheat baru: ");
+      Serial.println(overheatPoint);
+    }
+    inputMode = false;
+  }
+  else {
     currentMillis = millis();
     if(currentMillis - previousMillis >= interval) {
       previousMillis = currentMillis;
       int value = analogRead(inPinThermo);
-      float millivolts = (value / 1024.0) * 100;
-      celcius = millivolts * 3.3;
-    }
-    printSevenSeg(convertSuhu(celcius,temperatureMode));
-    
-    // read input from keyboard
-    if (Serial.available() > 0) {
-      // read the incoming byte:
-      incomingByte = Serial.read();
- 
-      // say what you got:
-      Serial.print("I received: ");
-      Serial.println(incomingByte, DEC);
+      float millivolts = (value / 1024.0) * 5000;
+      celcius = millivolts / 10 - 3;
     }
     
-    if(celcius>23.0) {
-      digitalWrite(ledPin, HIGH);
+    // Overheat
+    if(celcius>overheatPoint) {
+      digitalWrite(motorPin, HIGH);
+      int ledInterval = 10;
+      
+      fadeValue += increment;
+      prevMillisLED = currentMillis;
+      if(currentMillis - prevMillisLED >= ledInterval) {
+        prevMillisLED = currentMillis;
+      }
+      if(!(fadeValue>0&&fadeValue<255)) {
+        increment = -increment;
+      }
     }
     else {
-      digitalWrite(ledPin, LOW);
+      digitalWrite(motorPin, LOW);
+      fadeValue = LOW;
+      increment = 5;
     }
   }
-  while(digitalRead(buttonPin) == LOW) {
-    currentMillis = millis();
-    if(currentMillis - previousMillis >= interval) {
-      previousMillis = currentMillis;
-      int value = analogRead(inPinThermo);
-      float millivolts = (value / 1024.0) * 100;
-      celcius = millivolts * 3.3;
-    }
-    printSevenSeg(convertSuhu(celcius,temperatureMode));
-    
-    // read input from keyboard
-    if (Serial.available() > 0) {
-      // read the incoming byte:
-      incomingByte = Serial.read();
- 
-      // say what you got:
-      Serial.print("I received: ");
-      Serial.println(incomingByte, DEC);
-    }
-    
-    if(celcius>23.0) {
-      digitalWrite(ledPin, HIGH);
-    }
-    else {
-      digitalWrite(ledPin, LOW);
-    }
-  }
-  temperatureMode++;
+  printSevenSeg(convertSuhu(celcius,temperatureMode));
+  analogWrite(ledPin, fadeValue);
 }
 
